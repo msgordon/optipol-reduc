@@ -3,7 +3,7 @@ import pyfits
 import argparse
 import os
 import numpy as np
-from pyds9 import pydisplay
+#from pyds9 import pydisplay
 
 
 def get_HWP(filename):
