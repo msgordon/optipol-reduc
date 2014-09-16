@@ -31,8 +31,9 @@ python expnorm.py ../reduced/NGC3628*.fit
 
 ## SKY SUB
 **_Make reg boxes in ds9, one top and one bottom_**
-
+```bash
 python skysub.py ../reduced/NGC3628*.fit -reg skyBoxes.reg
+```
 
 ## WOLLY SPLIT
 ```bash
