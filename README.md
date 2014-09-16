@@ -2,13 +2,13 @@
 ### 09/16/2014
 
 ### REQUIREMENTS
- *numpy
- *pyfits
- *matplotlib
- *pyregion
- *PyGuide
- *astropy
- *LAcosmics (included)
+ * numpy
+ * pyfits
+ * matplotlib
+ * pyregion
+ * PyGuide
+ * astropy
+ * LAcosmics (included)
 
 
 ### BIAS SUBTRACT
