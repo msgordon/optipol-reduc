@@ -2,13 +2,13 @@
 ### 09/16/2014
 
 ## REQUIREMENTS
--numpy
--pyfits
--matplotlib
--pyregion
--PyGuide
--astropy
--LAcosmics (included)
+ -numpy
+ -pyfits
+ -matplotlib
+ -pyregion
+ -PyGuide
+ -astropy
+ -LAcosmics (included)
 
 
 ## BIAS SUBTRACT
@@ -31,16 +31,20 @@ python expnorm.py ../reduced/NGC3628*.fit
 
 ## SKY SUB
 **_Make reg boxes in ds9, one top and one bottom_**
+
 python skysub.py ../reduced/NGC3628*.fit -reg skyBoxes.reg
 
 ## WOLLY SPLIT
+```bash
 python wolly_split.py ../reduced/NGC3628*.fit -o ../reduced/ -prefix NGC3628_R-
 python cosmic_clean.py ../reduced/NGC3628*_A.fit
 python cosmic_clean.py ../reduced/NGC3628*_B.fit
+```
 
 ## ALIGN
+```bash
 python point_align.py ../reduced/NGC3628*_A.fit -coords x y
 python point_align.py ../reduced/NGC3628*_B.fit -coords x y
 python point_align.py ../reduced/NGC3628*.al.fit --aligned
-
+```
 
