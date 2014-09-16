@@ -2,7 +2,7 @@
 import pyfits
 import argparse
 import os
-from pyds9 import pydisplay
+#from pyds9 import pydisplay
 import numpy as np
 import matplotlib.pyplot as plt
 import pyregion
@@ -144,7 +144,7 @@ def get_contour_mask(data,levels):
 def main():
     parser = argparse.ArgumentParser(description='Form QU pairs on input data')
     parser.add_argument('filelist', nargs='+',help='Input files')
-    parser.add_argument('-reg',dest='regfile',type=str,required=True,help='File with region box.')
+    #parser.add_argument('-reg',dest='regfile',type=str,required=True,help='File with region box.')
     
     args = parser.parse_args()
 
@@ -195,7 +195,7 @@ def main():
     p = np.sqrt(q**2 + u**2)
     theta = 0.5 * np.arctan2(u,q)
 
-
+    '''
     levels = [0.1,0.2,0.4,0.5,1]
     cmask = get_contour_mask(p,levels)
     rmask = make_reg_mask(args.regfile,(p.shape[1],p.shape[0]))
@@ -212,7 +212,27 @@ def main():
 
     plt.show()
     exit()
+    #'''
+
     
+    ####  image mask
+    idy,idx = np.ogrid[0:p.shape[0],0:p.shape[1]]
+    mask = (idy < 28) & (idx > 3) & (idy > 1)
+    mask = ~mask
+    mask = np.ma.ones(p.shape,dtype=bool)
+    mask[p < 1.0] = False
+
+    # Quiver
+    figp = plt.figure()
+    pmask = np.ma.masked_array(p,mask)
+    im = plt.imshow(pmask,interpolation='none',cmap='gray_r',origin='lower')
+    plt.colorbar(im)
+
+    
+    Quiver = plt.quiver(pmask*np.cos(theta),pmask*np.sin(theta),pivot='mid', scale=None,headlength=1,headwidth=1,color='r',edgecolor='r',linewidth=(2,),alpha=0.7)
+
+    plt.show()
+    exit()
     '''
     ###THIS IS GOOD
     #pydisplay(p)
