@@ -5,11 +5,19 @@ from astropy.modeling import models, fitting
 import pyfits
 from scipy.optimize import curve_fit,leastsq
 from scipy import stats
+import matplotlib.pyplot as plt
 
 fitter = fitting.LevMarLSQFitter()
+CEN_MAN_ATTEMPTS = 0
+returnMe = {}
 
-def centroid(data, coords, rad = 30, returnFit = False):
+def centroid(data, coords, rad = 30, returnFit = False,manual=False):
+    global CEN_MAN_ATTEMPTS
+    if CEN_MAN_ATTEMPTS > 2:
+        CEN_MAN_ATTEMPTS = 0
+        return returnMe['key']
     if isinstance(data,str):
+        print 'Reading from %s' % data
         data = pyfits.getdata(data)
 
     # Transpose x and y b/c reasons
@@ -19,20 +27,56 @@ def centroid(data, coords, rad = 30, returnFit = False):
     x,y = np.mgrid[0:dslice.shape[0],0:dslice.shape[1]]
     x -= dslice.shape[0]/2.
     y -= dslice.shape[1]/2.
-                
+
+    if manual:
+        extent = (np.min(x),np.max(x),np.min(y),np.max(y))# (l,r,b,t)
+        centroid_manual(data,dslice,extent,coords,rad,returnFit)
+        CEN_MAN_ATTEMPTS = 0
+        return returnMe['key']
+    
     p_init = models.Gaussian2D(np.max(dslice),0,0,rad,rad)
     p = fitter(p_init,x,y,dslice)
-    
+
     # Rescale coordinates to match data
     p.x_mean = center_y - p.x_mean
     p.y_mean = center_x - p.y_mean
 
+    dist = np.sqrt((p.x_mean.value-center_y)**2 + (p.y_mean.value-center_x)**2)
+    # If distance is too big, prompt to select center by hand
+    if dist > rad:
+        print 'Cannot locate center.  Select manually.'
+        extent = (np.min(x),np.max(x),np.min(y),np.max(y))# (l,r,b,t)
+        return centroid_manual(data,dslice,extent,coords,rad,returnFit)
+
+    CEN_MAN_ATTEMPTS = 0
     if returnFit:
         return p.x_mean.value, p.y_mean.value, p
     
     else:
         return p.x_mean.value, p.y_mean.value
 
+
+def centroid_manual(data,dslice,extent,coords,rad,returnFit):
+    def onclick(event):
+        global returnMe
+        global CEN_MAN_ATTEMPTS
+        xc,yc = (event.xdata,event.ydata)
+        if not xc or not yc:
+            print 'Click on center of target'
+        else:
+            xr,yr = (xc+coords[0],yc+coords[1])
+            print '(%.2f,%.2f) -> (%.2f,%.2f)' %(xc,yc,xr,yr)
+            plt.close()
+            CEN_MAN_ATTEMPTS += 1
+            returnMe['key'] = centroid(data,(xr,yr),rad,returnFit)
+
+    print 'Attempt %i' % (CEN_MAN_ATTEMPTS+1)
+    fig = plt.figure()
+    plt.imshow(dslice,origin='lower',extent=extent,interpolation='none',vmin=0)
+    cid = fig.canvas.mpl_connect('button_press_event',onclick)
+    print 'Click on center of target'
+    plt.show()
+    return returnMe['key']
 
 def centroid_airy(data, coords, rad = 30, returnFit = False):
     if isinstance(data,str):

@@ -34,7 +34,7 @@ def imshift(filename,shifts,center,refFile,name_ext='.al',clobber=False):
     return newName
 
     
-def align(filelist,coords=None,rad=None,aligned=False):
+def align(filelist,coords=None,rad=None,aligned=False,manual=False):
     if len(filelist) < 2:
         raise InputError('At least 2 input images required')
     
@@ -47,7 +47,8 @@ def align(filelist,coords=None,rad=None,aligned=False):
         # Centroid on all images
         print 'Centroiding...'
         for filename in filelist:
-            center = centroid(filename,coords,rad)
+            center = centroid(filename,coords,rad,manual=manual)
+            print center
             print '%s: (%.2f,%.2f)' % (filename,center[0],center[1])
             centers.append(center)
 
@@ -87,9 +88,10 @@ def main():
     parser.add_argument('-coords',nargs=2,type=int,help='Initial guess of coordinates: x y (default is XCEN,YCEN keywords in header)')
     parser.add_argument('--r',type=int,default=40,help='Search radius (default is 40 pixels)')
     parser.add_argument('--aligned',action='store_true',help='Specify if images have already been aligned. Align to XCEN,YCEN.')
+    parser.add_argument('--man',action='store_true',help='Select centers manually')
     
     args = parser.parse_args()
-    align(args.filelist,args.coords,args.r,args.aligned)
+    align(args.filelist,args.coords,args.r,args.aligned,args.man)
 
     return 0
 
