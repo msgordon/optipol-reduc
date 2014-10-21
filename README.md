@@ -49,3 +49,4 @@ python point_align.py ../reduced/NGC3628*_B.fit -coords x y
 python point_align.py ../reduced/NGC3628*.al.fit --aligned
 ```
 
+### 
