@@ -9,7 +9,8 @@ from os import mkdir
 import numpy as np
 
 class Plotter(object):
-    def __init__(self,filelist,step,outdir,ext,clobber):
+    def __init__(self,filelist,
+                 step=1.0,outdir='./nudged/',ext='',clobber=False):
         self.filelist = filelist
         # datalist holds current state of arrays
         self.datalist = map(pyfits.getdata,filelist)
