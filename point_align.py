@@ -36,7 +36,7 @@ def imshift(filename,shifts,center,refFile,name_ext='.al',clobber=False):
     
 def align(filelist,coords=None,rad=None,aligned=False,manual=False):
     if len(filelist) < 2:
-        raise InputError('At least 2 input images required')
+        raise Exception('At least 2 input images required')
     
     if not coords:
         h = pyfits.getheader(filelist[0])

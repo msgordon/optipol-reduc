@@ -7,6 +7,7 @@ import pyfits
 import os.path
 from os import mkdir
 import numpy as np
+from ds9norm import DS9Normalize
 
 class Plotter(object):
     def __init__(self,filelist,
@@ -23,11 +24,17 @@ class Plotter(object):
         self.active_data = self.datalist[0]
         # store total offsets
         self.offsets = np.zeros((len(filelist),2))
+
+        # initialize norm
+        self.norm = DS9Normalize(stretch='linear')
         
 
         # set up subparser
         self.subparser=argparse.ArgumentParser(description='Parse window text.',prog='')
         self.subparser.add_argument('-s',type=float,help='Step size (default=%.1f)' % self.step)
+        self.subparser.add_argument('--stretch',choices=['linear','sqrt','arcsinh','log','power','squared'],help='Choose image stretch (default = stretch)')
+        self.subparser.add_argument('--clip_lo',type=float,help='Clip minimum intensity percentile')
+        self.subparser.add_argument('--clip_hi',type=float,help='Clip maximum intensity percentile')
         self.subparser.add_argument('-w',action='store_true',help="Write current frame to output directory (outdir=%s)"%self.outdir)
         self.subparser.add_argument('-wa',action='store_true',help="Write all frames to output directory (outdir=%s)"%self.outdir)
         self.subparser.add_argument('-wq',action='store_true',help="Write all frames to output directory and quit (outdir=%s)"%self.outdir)
@@ -38,6 +45,13 @@ class Plotter(object):
         self.fig = plt.figure()
         self.fig.canvas.mpl_disconnect(self.fig.canvas.manager.key_press_handler_id)
         self.keycid = self.fig.canvas.mpl_connect('key_press_event',self.onkey)
+
+        self.fig.canvas.mpl_connect('button_press_event', self.onclick)
+        self.fig.canvas.mpl_connect('button_release_event', self.onrelease)
+
+        # Hold x,y drag coords
+        self.dragfrom = None
+        
         self.pausetext = '-'
         self.pid = None
 
@@ -53,6 +67,7 @@ class Plotter(object):
         print "'left/right/up/down' to translate image"
         print "'</>' to choose previous/next image in input list"
         print "'-h' to see additional options"
+        print "'--q' to quit"
         print
         
         #Show initial
@@ -63,8 +78,9 @@ class Plotter(object):
 
     def display(self, data):
         self.fig.clf()
-        plt.imshow(data,origin='lower',interpolation='none')
+        im = plt.imshow(data,origin='lower',interpolation='none',norm=self.norm,cmap='gray')
         plt.title(self.filelist[self.current])
+        self.fig.colorbar(im,orientation='horizontal')
         self.fig.canvas.draw()
 
     def displaytext(self,text,x=0.05,y=0.05,remove=None):
@@ -99,10 +115,28 @@ class Plotter(object):
             self.step = args.s
             print 'Step size changed to %.2f' % self.step
 
+        if args.stretch:
+            print 'Changed stretch to %s' % args.stretch
+            self.norm.stretch = args.stretch
+            self.display(self.active_data)
+
+        if args.clip_lo:
+            print 'Clip lo changed to %.2f' % args.clip_lo
+            self.norm.clip_lo = args.clip_lo
+            self.display(self.active_data)
+
+        if args.clip_hi:
+            print 'Clip hi changed to %.2f' % args.clip_hi
+            self.norm.clip_hi = args.clip_hi
+            self.display(self.active_data)
+
+            
         if args.r:
             self.active_data = self.orig_data.copy()
             self.offsets[self.current][0] = 0.0
             self.offsets[self.current][1] = 0.0
+            self.norm = DS9Normalize(stretch='linear')
+            self.display(self.active_data)
             print 'Restored image from %s' % self.filelist[self.current]
 
         if args.w:
@@ -234,7 +268,49 @@ class Plotter(object):
                           self.offsets[self.current][1],
                           self.step),
                          x=0.60)
+
+
+    def onclick(self, event):
+        if event.button == 3:  # rightclick
+            #start dragfrom
+            self.dragfrom = [event.xdata, event.ydata]
+
+    def onrelease(self, event):
+        if event.button != 3 and self.dragfrom is not None:
+            return
+
+        try:
+            dx = self.dragfrom[0] - event.xdata
+            dy = self.dragfrom[1] - event.ydata
+
+        except:
+            return
+
+        self.dragfrom = None
+
+        trans = 2.0
+        fx = trans * dx/np.abs(np.diff(self.fig.gca().get_xlim()))
+        fy = trans * dy/np.abs(np.diff(self.fig.gca().get_ylim()))
+
+        bias = self.norm.bias - fx
+        if bias > 1:
+            self.norm.bias = 1.0
+        elif bias < 0.01:
+            self.norm.bias = 0.01
+        else:
+            self.norm.bias = bias
+
+        contrast = self.norm.contrast - fy
+        if contrast > 2:
+            self.norm.contrast = 2.0
+        elif contrast < -2:
+            self.norm.contrast = -2.0
+        else:
+            self.norm.contrast = contrast
         
+
+        self.display(self.active_data)
+
 
 def main():
     parser = argparse.ArgumentParser(description='Nudge an image, or series of images, by a given step size')
