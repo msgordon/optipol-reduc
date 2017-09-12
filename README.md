@@ -1,52 +1,20 @@
 #  README for Optipol Reduction  #
-### 09/16/2014
+### 09/12/2017
 
 ### REQUIREMENTS
- * numpy
- * pyfits
- * matplotlib
- * pyregion
- * PyGuide
  * astropy
- * LAcosmics (included)
+ * [ccdproc](http://ccdproc.readthedocs.io/en/latest/ccdproc/install.html "Astropy ccdproc")
 
+##Example usage
 
-### BIAS SUBTRACT
+### Construct master bias
 ```bash
-python zeroproc.py ../raw/bias* -zout ../reduced/MasterBias.fit
-python zeroproc.py ../reduced/MasterBias.fit --data ../raw/NGC3628*.fit -dout ../reduced
-python zeroproc.py ../reduced/MasterBias.fit --data ../raw/flat*.fit -dout ../reduced
+python stack.py NGC4565/raw/*.fit -imgtype bias -o NGC4565/reduced/MasterBias.fits
 ```
 
-### FLAT FIELD
+### Construct master darks
 ```bash
-python flatproc.py ../reduced/flat* -fout ../reduced
-python flatproc.py ../reduced/MasterFlat*.fit --data ../reduced/NGC3628*.fit -dout ../reduced
+python stack.py NGC4565/raw/*.fit -imgtype dark -exptime 60 -o NGC4565/reduced/MasterDark_60.fits
+python stack.py NGC4565/raw/*.fit -imgtype dark -exptime 120 -o NGC4565/reduced/MasterDark_120.fits
 ```
-
-### NORMALIZE
-```bash
-python expnorm.py ../reduced/NGC3628*.fit
-```
-
-### SKY SUB
-**_Make reg boxes in ds9, one top and one bottom_**
-```bash
-python skysub.py ../reduced/NGC3628*.fit -reg skyBoxes.reg
-```
-
-### WOLLY SPLIT
-```bash
-python wolly_split.py ../reduced/NGC3628*.fit -o ../reduced/ -prefix NGC3628_R-
-python cosmic_clean.py ../reduced/NGC3628*_A.fit
-python cosmic_clean.py ../reduced/NGC3628*_B.fit
-```
-
-### ALIGN
-```bash
-python point_align.py ../reduced/NGC3628*_A.fit -coords x y
-python point_align.py ../reduced/NGC3628*_B.fit -coords x y
-python point_align.py ../reduced/NGC3628*.al.fit --aligned
-```
-
-### 
+Optionally, add the `--n` flag to normalize by EXPTIME.
