@@ -4,8 +4,10 @@
 ### REQUIREMENTS
  * astropy
  * [ccdproc](http://ccdproc.readthedocs.io/en/latest/ccdproc/install.html "Astropy ccdproc")
+ * [pyregion](http://pyregion.readthedocs.io/en/latest/ "pyregion")
+ * [joblib](http://pythonhosted.org/joblib/index.html "joblib")
 
-##Example usage
+## Example usage
 
 ### Construct master bias
 ```bash
@@ -18,3 +20,9 @@ python stack.py NGC4565/raw/*.fit -imgtype dark -exptime 60 -o NGC4565/reduced/M
 python stack.py NGC4565/raw/*.fit -imgtype dark -exptime 120 -o NGC4565/reduced/MasterDark_120.fits
 ```
 Optionally, add the `--n` flag to normalize by EXPTIME.
+
+### Construct master flats by HWP position
+```bash
+python stack.py NGC4565/raw/flat*.fit -o NGC4565/reduced/MasterFlat.fits --flat -maskfile masks/wolly_mask.reg
+```
+Optionally, add `-njobs 0` to parallelize.

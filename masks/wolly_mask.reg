@@ -1,0 +1,5 @@
+# Region file format: DS9 version 4.1
+global color=green dashlist=8 3 width=1 font="helvetica 10 normal roman" select=1 highlite=1 dash=0 fixed=0 edit=1 move=1 delete=1 include=1 source=1
+image
+box(542.09461,757.87872,962.97984,477.75744,0) # text={Mask_MLOF_top}
+box(530.29226,230.3368,986.58453,455.3264,0) # text={Mask_MLOF_bot}
