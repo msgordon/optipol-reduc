@@ -23,6 +23,12 @@ Optionally, add the `--n` flag to normalize by EXPTIME.
 
 ### Construct master flats by HWP position
 ```bash
-python stack.py NGC4565/raw/flat*.fit -o NGC4565/reduced/MasterFlat.fits --flat -maskfile masks/wolly_mask.reg
+python stack.py NGC4565/raw/flat*.fit -o NGC4565/reduced/MasterFlat.fits --normw --wolly -maskfile masks/wolly_mask.reg
 ```
-Optionally, add `-njobs 0` to parallelize.
+Optionally, add `-njobs -1` to parallelize.
+
+### Clean images
+The array has many bad pixels.  Use `LACosmics` to clean.
+```bash
+python clean.py NGC4565/raw/NGC4565_R-0* -odir NGC4565/reduced/ -sclip 3
+```

@@ -77,7 +77,7 @@ def get_exptime(header,key='EXPTIME'):
         t = 1.
     return t
 
-def combine(filelist,method,clip=None,clip_lo=None,clip_hi=None,norm=False,mask=None):
+def combine(filelist,method,clip=None,clip_lo=None,clip_hi=None,norm=False,mask=None,normw=False):
     '''Combine input files with specified method'''
     if isinstance(filelist,ImageFileCollection):
         filelist = filelist.ccds(ccd_kwargs={'unit':'adu'})
@@ -85,8 +85,8 @@ def combine(filelist,method,clip=None,clip_lo=None,clip_hi=None,norm=False,mask=
         filelist = (CCDData.read(fname,unit='adu') for fname in filelist)
 
     # must convert again. ccd_reader does not process masks
-    if norm == 'flat':
-        # flat masks have form: (top, bottom, total)
+    if normw:
+        # wolly masks have form: (top, bottom, total)
         tmask = mask[-1]
     else:
         tmask = mask
@@ -98,11 +98,15 @@ def combine(filelist,method,clip=None,clip_lo=None,clip_hi=None,norm=False,mask=
     header = filelist[0].header
     header.add_history('stack.py - %s' % Time(Time.now(),format='fits'))
 
-    # divide by exptime
-    if norm in [True,'flat']:
-        c.scaling = [1./get_exptime(f.header) for f in filelist]
-        header['NORMALZD'] = (True,'Images normalized by exposure time')
-        header.add_history('         - normalized by exptime')
+    # divide by exptime, unless normw specified
+    if norm:
+        if normw:
+            #warn(RuntimeWarning('--norm parameter ignored in --normw mode.  Wolly halves will be normalized to 1.'))
+            pass
+        else:
+            c.scaling = [1./get_exptime(f.header) for f in filelist]
+            header['NORMALZD'] = (True,'Images normalized by exposure time')
+            header.add_history('         - normalized by exptime')
 
     if clip == 'ccdclip':
         c.clip_extrema(int(clip_lo),int(clip_hi))
@@ -135,7 +139,7 @@ def combine(filelist,method,clip=None,clip_lo=None,clip_hi=None,norm=False,mask=
         header['NCLIPHI'] = (clip_hi,'Clip hi')
         header.add_history('         - clipped with method %s, clip_lo=%.3f, clip_hi=%.3f' % (clip,clip_lo,clip_hi))
 
-    if norm == 'flat':
+    if normw:
         # normalize by wolly masks separately
         masktop = np.ma.array(ccd.data, mask = mask[0])
         maskbot = np.ma.array(ccd.data, mask = mask[1])
@@ -148,8 +152,7 @@ def combine(filelist,method,clip=None,clip_lo=None,clip_hi=None,norm=False,mask=
         
         header['NORMALWS'] = (True,'Images normalized to 1 by Wolly split')
         header.add_history('         - normalized to 1 by Wolly split')
-        header['HWP'] = header['FILTER']
-        header['IMAGETYP'] = 'Flat Frame'
+        #header['IMAGETYP'] = 'Flat Frame'
         
     header.add_history('         - %s combined images' % method)
 
@@ -179,25 +182,26 @@ def main():
     parser.add_argument('-maskfile',default=None,type=str,help='Specify maskfile.')
     parser.add_argument('--c',action='store_true',help='Clobber (overwrite) on output')
     parser.add_argument('--norm',action='store_true',help='Normalize by exptime before combining')
-    parser.add_argument('--flat',action='store_true',help='In flat mode, HWP positions are treated separately.  Each wollaston half is normalized to 1.')
-    parser.add_argument('-njobs',type=int,default=1,help='Process flat groups in parallel. "0" is all CPUs (default=1).')
+    parser.add_argument('--normw',action='store_true',help='Normalize to 1 by wolly split')
+    parser.add_argument('--wolly',action='store_true',help='In wolly mode, HWP positions are treated separately.')
+    parser.add_argument('-njobs',type=int,default=1,help='Process wolly groups in parallel. "-1" is all CPUs (default=1).')
 
     args = parser.parse_args()
 
     if args.maskfile:
         # process mask file
-        mask = read_mask(args.maskfile,args.filenames[0],wolly=args.flat)
+        mask = read_mask(args.maskfile,args.filenames[0],wolly=args.wolly)
     else:
         mask = None
 
 
-    if args.flat:
+    if args.wolly:
         # process HWP separately
         if args.maskfile is None:
-            parser.error("--flat requires -maskfile (e.g. masks/wolly_mask.reg")
+            parser.error("--wolly requires -maskfile (e.g. masks/wolly_mask.reg")
 
         if args.filter:
-            warn(RuntimeWarning('-filter parameter ignored in --flat mode.  MaxIm DL currently uses the FITS "FILTER" keyword for the HWP position.'))
+            warn(RuntimeWarning('-filter parameter ignored in --wolly mode.  MaxIm DL currently uses the FITS "FILTER" keyword for the HWP position.'))
 
         # initialize partial functions for ease of parallelization later
         get_files_HWP = partial(get_files,
@@ -205,24 +209,22 @@ def main():
                                 location=args.datadir,
                                 imagetyp=args.imgtype,
                                 fexptime=args.exptime)
-        proc_files = partial(combine,method=args.m,clip=args.clip,clip_lo=args.cval[0],clip_hi=args.cval[1],norm='flat',mask=mask)
+        proc_files = partial(combine,method=args.m,clip=args.clip,clip_lo=args.cval[0],clip_hi=args.cval[1],norm=args.norm,mask=mask,normw=args.normw)
 
         filters = ('0','45','22.5','67.5')
 
         # if njobs != 1, execute in parallel
-        if args.njobs != 1:
-            if args.njobs == 0:
-                args.njobs = -1
+        with Parallel(args.njobs) as parallel:
+            # get files by HWP pos
+            collections = parallel(delayed(get_files_HWP)(filter=filt) for filt in filters)
+            # combine by HWP pos
+            ccds = parallel(delayed(proc_files)(c) for c in collections)
 
-            with Parallel(args.njobs) as parallel:
-                collections = parallel(delayed(get_files_HWP)(filter=filt) for filt in filters)
-                ccds = parallel(delayed(proc_files)(c) for c in collections)
-            
-        else:
-            # run as single thread
-            collections = (get_files_HWP(filter=filt) for filt in filters)
-            ccds = (proc_files(c) for c in collections)
-
+            for ccd in ccds:
+                #update header to include HWP pos
+                ccd[0].header['HWP'] = (np.float(ccd[0].header['FILTER']),
+                                        'HWP position')
+        
         # create output directory
         mdir = os.path.dirname(args.o)
         if mdir not in ['','.']:
@@ -230,7 +232,7 @@ def main():
         else:
             mdir = '.'
 
-        # generate each flat file
+        # generate each wolly file
         base,ext = os.path.splitext(args.o)
         ofiles = ('%s_%s%s'%(base,suf,ext) for suf in ('00','45','22','67'))
         try:
@@ -241,15 +243,15 @@ def main():
         print('Images written to %s' % mdir)
 
     else:
-        # not flat mode, stack normally
+        # not wolly mode, stack normally
         if args.njobs != 1:
-            warn(RuntimeWarning('-njobs parameter ignored when not in --flat mode. Parallel processing disabled.'))
+            warn(RuntimeWarning('-njobs parameter ignored when not in --wolly mode. Parallel processing disabled.'))
         collection = get_files(args.filenames,location=args.datadir,
                                imagetyp=args.imgtype,filter=args.filter,
                                fexptime=args.exptime)
         
         # combine images using args
-        ccd = combine(collection,method=args.m,clip=args.clip,clip_lo=args.cval[0],clip_hi=args.cval[1],norm=args.norm,mask=mask)
+        ccd = combine(collection,method=args.m,clip=args.clip,clip_lo=args.cval[0],clip_hi=args.cval[1],norm=args.norm,mask=mask,normw=args.normw)
         
 
         # create output directory
