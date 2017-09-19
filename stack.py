@@ -180,7 +180,7 @@ def main():
     parser.add_argument('--c',action='store_true',help='Clobber (overwrite) on output')
     parser.add_argument('--norm',action='store_true',help='Normalize by exptime before combining')
     parser.add_argument('--flat',action='store_true',help='In flat mode, HWP positions are treated separately.  Each wollaston half is normalized to 1.')
-    parser.add_argument('-njobs',type=int,default=1,help='If joblib is installed, process flat groups in parallel. "0" is all CPUs (default=1).')
+    parser.add_argument('-njobs',type=int,default=1,help='Process flat groups in parallel. "0" is all CPUs (default=1).')
 
     args = parser.parse_args()
 
