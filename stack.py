@@ -13,7 +13,10 @@ from joblib import Parallel, delayed
 def read_mask(maskfile,fitsfile,wolly=False):
     '''Parse mask file and return masked region. If 'wolly' is True, return two masks.'''
     import pyregion
-    hdu = fits.open(fitsfile)
+    if isinstance(fitsfile,str):
+        hdu = fits.open(fitsfile)
+    else:
+        hdu = fitsfile
     reg = pyregion.open(maskfile)
 
     # total mask
@@ -96,7 +99,7 @@ def combine(filelist,method,clip=None,clip_lo=None,clip_hi=None,norm=False,mask=
     c = Combiner(filelist)
 
     header = filelist[0].header
-    header.add_history('stack.py - %s' % Time(Time.now(),format='fits'))
+    header.add_history('%s - %s' % (os.path.basename(__file__),Time(Time.now(),format='fits')))
 
     # divide by exptime, unless normw specified
     if norm:
@@ -107,13 +110,29 @@ def combine(filelist,method,clip=None,clip_lo=None,clip_hi=None,norm=False,mask=
             c.scaling = [1./get_exptime(f.header) for f in filelist]
             header['NORMALZD'] = (True,'Images normalized by exposure time')
             header.add_history('         - normalized by exptime')
+    else:
+        header['NORMALZD'] = (False,'Images normalized by exposure time')
 
     if clip == 'ccdclip':
+        if clip_lo is None and clip_hi is None:
+            clip_lo = 10
+            clip_hi = 10
+            warn(RuntimeWarning('-cval not specified. Default values uses for %s are: %.1f %.1f'% (clip,clip_lo,clip_hi)))
         c.clip_extrema(int(clip_lo),int(clip_hi))
     elif clip == 'minmax':
+        if clip_lo is None and clip_hi is None:
+            clip_lo = 0.
+            clip_hi = 50000.
+            warn(RuntimeWarning('-cval not specified. Default values uses for %s are: %.1f %.1f'% (clip,clip_lo,clip_hi)))
         c.minmax_clipping(clip_lo,clip_hi)
+        
     elif clip == 'sigclip':
+        if clip_lo is None and clip_hi is None:
+            clip_lo = 3. # default 3 stdev
+            clip_hi = 3.
+            warn(RuntimeWarning('-cval not specified. Default values uses for %s are: %.1f %.1f'% (clip,clip_lo,clip_hi)))
         c.sigma_clipping(clip_lo,clip_hi)
+        
     elif clip is None:
         pass
     else:
@@ -137,7 +156,7 @@ def combine(filelist,method,clip=None,clip_lo=None,clip_hi=None,norm=False,mask=
         header['NCLIPMET'] = (clip,'Image clip method')
         header['NCLIPLO'] = (clip_lo,'Clip lo')
         header['NCLIPHI'] = (clip_hi,'Clip hi')
-        header.add_history('         - clipped with method %s, clip_lo=%.3f, clip_hi=%.3f' % (clip,clip_lo,clip_hi))
+        header.add_history('         - clipped with method %s, clip_lo=%.2f, clip_hi=%.2f' % (clip,clip_lo,clip_hi))
 
     if normw:
         # normalize by wolly masks separately

@@ -4,6 +4,8 @@ from ccdproc import CCDData
 from joblib import Parallel, delayed
 import os.path
 from astropy.time import Time
+from astropy import log
+log.setLevel('WARNING') # CCDData throws too much info at you
 try:
     from astroscrappy import detect_cosmics
     from ccdproc import cosmicray_lacosmic
@@ -31,6 +33,7 @@ def main():
     args = parser.parse_args()
 
     ccds = (CCDData.read(fname,unit='adu') for fname in args.filenames)
+    
     with Parallel(args.njobs,verbose=11) as parallel:
         cleaned = parallel(delayed(cosmicray_lacosmic)(ccd,sigclip=args.sclip,sigfrac=args.sfrac,niter=args.niter,objlim=args.objlim,satlevel=args.satlevel) for ccd in ccds)
 
@@ -40,7 +43,10 @@ def main():
         header.add_history('clean.py - %s' % Time(Time.now(),format='fits'))
         header['CLEANED'] = (True,'Cleaned with LACosmics')
         header['CLNMTHD'] = (CLNMTHD,'Method used to clean')
-        hdu.writeto(outfile,overwrite=args.c)
+        try:
+            hdu.writeto(outfile,overwrite=args.c)
+        except OSError as e:
+            raise OSError("File '%s' already exists.  Re-run with --c flag to overwrite existing files." % outfile) from e
         
     
     
