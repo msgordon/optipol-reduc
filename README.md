@@ -52,3 +52,8 @@ Specifying `-maskfile` attempts to mask bad pixels during the CCD reduction proc
 python split.py NGC4565/proc/*.fit -odir NGC4565/split -maskfile masks/wolly_mask.reg
 ```
 Using the `wolly_mask.reg` ds9 region file, split the images into ordinary (A) and extraordinary (B) beams.
+
+### Align images
+```bash
+python imalign.py NGC4565/split/NGC4565_R-0* -odir NGC4565/align
+```

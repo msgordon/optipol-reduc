@@ -20,6 +20,27 @@ def split_by_mask(filename,mask,outdir,overwrite=False):
     A = hdu[0].data[~mask[0]].reshape(mask[3])
     B = hdu[0].data[~mask[1]].reshape(mask[4])
 
+    # measure size difference and pad to same shape
+    diff = np.diff(np.vstack([B.shape,A.shape]),axis=0)[0]
+
+    if diff[0] < 0:
+        # A is shorter than B
+        A = np.pad(A,((-diff[0],0),(0,0)),
+                   mode='constant',constant_values=np.nan)
+    else:
+        # B is shorter than A
+        B = np.pad(B,((diff[0],0),(0,0)),
+                   mode='constant',constant_values=np.nan)
+
+    if diff[1] < 0:
+        # B is wider than A
+        A = np.pad(A,((0,0),(-diff[1],0)),
+                   mode='constant',constant_values=np.nan)
+    else:
+        # A is wider than B
+        B = np.pad(B,((0,0),(diff[1],0)),
+                   mode='constant',constant_values=np.nan)
+
     hduA = fits.HDUList(fits.PrimaryHDU(data=A,header=hdu[0].header))
     hduB = fits.HDUList(fits.PrimaryHDU(data=B,header=hdu[0].header))
 
