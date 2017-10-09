@@ -6,6 +6,7 @@ import astropy.units as u
 from sys import exit
 from functools import partial
 import os.path
+from os import makedirs
 from astropy.time import Time
 import numpy as np
 from astropy import log
@@ -130,6 +131,10 @@ def main():
     #bias = CCDData.read(args.bias,unit='adu') if args.bias else None
     #dark = CCDData.read(args.dark,unit='adu') if args.dark else None
 
+    # create output directory
+    if args.odir not in ['','.']:
+        makedirs(args.odir,exist_ok=True)
+
     flats = [CCDData.read(fname,unit='adu') for fname in args.flat] if args.flat else None
 
     # if flats, verify that the HWP positions are represented
@@ -185,6 +190,8 @@ def main():
             basename = '.PROC'.join(os.path.splitext(basename))
             outfile = os.path.join(args.odir,basename)
 
+            hdu[0].header['HWP'] = (float(hdu[0].header[thkey]),'HWP position angle')
+
             #hdu = reduced.to_hdu()
             hdu[0].header.add_history('%s - %s' % (__file__,Time(Time.now(),format='fits')))
             hdu.writeto(outfile,overwrite=args.c)
@@ -196,6 +203,8 @@ def main():
             basename = os.path.basename(t.header['OFNAME'])
             basename = '.PROC'.join(os.path.splitext(basename))
             outfile = os.path.join(args.odir,basename)
+
+            hdu[0].header['HWP'] = (float(hdu[0].header[thkey]),'HWP position angle')
 
             #hdu = reduced.to_hdu()
             hdu[0].header.add_history('%s - %s' % (__file__,Time(Time.now(),format='fits')))

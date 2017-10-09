@@ -10,7 +10,29 @@ from functools import partial
 from warnings import warn
 from joblib import Parallel, delayed
 
-def read_mask(maskfile,fitsfile,wolly=False):
+def mask_shape(mask):
+    '''Return shape of masked values'''
+    mask = np.ma.array(mask,mask=mask)
+    # count non-masked values
+    masked_rows = np.ma.count(mask,axis=1)
+    # first row with non-zero count is top of mask
+    # last row with non-zero count is bottom of mask
+    unmasked = np.nonzero(masked_rows)
+    top,bottom = unmasked[0][0],unmasked[0][-1]
+
+    masked_cols = np.ma.count(mask,axis=0)
+    # first col with non-zero count is left of mask
+    # last col with non-zero count is right of mask
+    unmasked = np.nonzero(masked_cols)
+    left,right = unmasked[0][0],unmasked[0][-1]
+
+    # compress
+    mask = mask[top:bottom,left:right]
+    #offset by one
+    shape = tuple([x+1 for x in mask.shape])
+    return shape
+
+def read_mask(maskfile,fitsfile,wolly=False,return_shape=False):
     '''Parse mask file and return masked region. If 'wolly' is True, return two masks.'''
     import pyregion
     if isinstance(fitsfile,str):
@@ -32,6 +54,14 @@ def read_mask(maskfile,fitsfile,wolly=False):
         pmask = [~pyregion.get_mask(r,hdu[0]) for r in reg]
         pmask.append(mask)
         mask = pmask
+
+        if return_shape:
+            shapes = [mask_shape(m) for m in mask]
+            mask = tuple(pmask + shapes)
+            #mask is (top,bottom,total,shape_top,shape_bot,shape_total)
+    else:
+        if return_shape:
+            mask = (mask,mask_shape(mask))
     return mask
 
 def get_files(filenames,location='.',imagetyp=None,filter=None,fexptime='*'):
