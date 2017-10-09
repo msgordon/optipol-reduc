@@ -118,8 +118,6 @@ def main():
     parser.add_argument('--c',action='store_true',help='Clobber (overwrite) on output')
     parser.add_argument('--fixpix',action='store_true',help='Interpolate over bad pixel mask.')
     parser.add_argument('-njobs',type=int,default=1,help='Process images in parallel. "-1" is all CPUs (default=1).')
-    ###  parallelization will not work as written.  CCDData objects are weakref
-    ###   and cannot be pickled
     
     args = parser.parse_args()
 
