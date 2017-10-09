@@ -2,7 +2,7 @@
 ### 10/09/2017
 
 ### REQUIREMENTS
- * astropy
+ * [astropy](http://docs.astropy.org/en/stable/ "Astropy")
  * [ccdproc](http://ccdproc.readthedocs.io/en/latest/ccdproc/install.html "Astropy ccdproc")
  * [pyregion](http://pyregion.readthedocs.io/en/latest/ "pyregion")
  * [photutils](https://photutils.readthedocs.io/en/latest/index.html "photutils")
