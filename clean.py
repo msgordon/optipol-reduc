@@ -39,6 +39,8 @@ def main():
 
     outfiles = (os.path.join(args.odir,os.path.basename(fname)) for fname in args.filenames)
     for hdu,outfile in zip(cleaned,outfiles):
+        if isinstance(hdu,CCDData):
+            hdu = hdu.to_hdu(hdu_mask=None,hdu_uncertainty=None)
         header = hdu[0].header
         header.add_history('clean.py - %s' % Time(Time.now(),format='fits'))
         header['CLEANED'] = (True,'Cleaned with LACosmics')

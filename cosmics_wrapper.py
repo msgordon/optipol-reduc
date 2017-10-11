@@ -20,4 +20,3 @@ def cosmicray_lacosmic(im,sigclip=5,sigfrac=0.3,readnoise=1,gain=1,objlim=5,satl
         im = cosmic.cleanarray
 
     return im
-        
