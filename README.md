@@ -1,5 +1,5 @@
 #  README for Optipol Reduction  #
-### 10/09/2017
+### 10/10/2017
 
 ### REQUIREMENTS
  * [astropy](http://docs.astropy.org/en/stable/ "Astropy")
@@ -22,6 +22,7 @@ Finally, each script also has an optional `-njobs` flag that allows for multi-pr
 ```bash
 python stack.py NGC4565/raw/*.fit -imgtype bias -o NGC4565/reduced/MasterBias.fits
 ```
+Alternatively, `stack.py` can accept one input filename (and all the other command line flags, too).  This one filename is then assumed to contain a list of input files, one per line.
 
 ### Construct master darks
 ```bash

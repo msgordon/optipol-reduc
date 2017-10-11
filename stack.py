@@ -243,6 +243,11 @@ def main():
     else:
         mask = None
 
+    if len(args.filenames) == 1:
+        # one input filename implies that this file is a list (since why would you try to stack one file?)
+        with open(args.filenames[0],'r') as f:
+            filenames = [x.strip() for x in f.readlines()]
+        args.filenames = filenames
 
     if args.wolly:
         # process HWP separately
